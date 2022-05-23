@@ -1,0 +1,16 @@
+version: '3.9'
+
+services:
+  efdpdb:
+    container_name: efdpdb_container
+    image: mcr.microsoft.com/azure-sql-edge
+    restart: always
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=pass1234!@
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+    ports:
+      - '1433:1433'

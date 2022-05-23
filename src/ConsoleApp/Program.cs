@@ -16,13 +16,13 @@ namespace ConsoleApp
     {
         static void Main(string[] args)
         {
-            //BenchmarkRunner.Run<InsertTest>();
-            //BenchmarkRunner.Run<InsertManyTest>();
-            //BenchmarkRunner.Run<SelectTest>();
-            //BenchmarkRunner.Run<SearchTest>();
-            //BenchmarkRunner.Run<FunctionsTest>();
-            //BenchmarkRunner.Run<UpdateTest>();
-            //BenchmarkRunner.Run<DeleteTest>();
+            // BenchmarkRunner.Run<InsertTest>();
+            // BenchmarkRunner.Run<InsertManyTest>();
+            // BenchmarkRunner.Run<SelectTest>();
+            // BenchmarkRunner.Run<SearchTest>();
+            // BenchmarkRunner.Run<FunctionsTest>();
+            // BenchmarkRunner.Run<UpdateTest>();
+            // BenchmarkRunner.Run<DeleteTest>();
 
 
             Console.ReadLine();

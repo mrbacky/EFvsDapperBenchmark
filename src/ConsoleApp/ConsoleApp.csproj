@@ -6,6 +6,10 @@
     <Platforms>AnyCPU</Platforms>
   </PropertyGroup>
 
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <OutputPath>bin/Release/net6.0/</OutputPath>
+  </PropertyGroup>
+
   <ItemGroup>
     <Compile Remove="Persistence\Dapper\Mapping\DapperGeneralMapping.cs" />
   </ItemGroup>
