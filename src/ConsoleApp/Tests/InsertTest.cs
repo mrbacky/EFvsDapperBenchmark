@@ -37,7 +37,7 @@ namespace ConsoleApp.Tests
 
             connection = new SqlConnection(Constants.ConnectionStringDapper);
             context = new ApplicationDbContext(dbContextOptions);
-
+            context.Database.EnsureCreated();
             // let it call modelcreating method
             context.Students.Count();
         }

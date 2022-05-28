@@ -16,6 +16,10 @@ namespace ConsoleApp
     {
         static void Main(string[] args)
         {
+            var dbContextOptions = InitEf();
+            var context = new ApplicationDbContext(dbContextOptions);
+
+            context.Database.Migrate();
             // BenchmarkRunner.Run<InsertTest>();
             // BenchmarkRunner.Run<InsertManyTest>();
             // BenchmarkRunner.Run<SelectTest>();
@@ -25,7 +29,7 @@ namespace ConsoleApp
             // BenchmarkRunner.Run<DeleteTest>();
 
 
-            Console.ReadLine();
+            // Console.ReadLine();
         }
 
         public static void InitDapper()
