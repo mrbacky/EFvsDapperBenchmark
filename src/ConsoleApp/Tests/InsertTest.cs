@@ -13,8 +13,8 @@ namespace ConsoleApp.Tests
     [SimpleJob(
         BenchmarkDotNet.Engines.RunStrategy.ColdStart,
         BenchmarkDotNet.Jobs.RuntimeMoniker.Net60,
-        launchCount: 10,
-        targetCount: 100,
+        launchCount: 1,
+        targetCount: 1000,
         id: "Insert Test")]
     [MemoryDiagnoser]
     [MinColumn, MaxColumn, MeanColumn, MedianColumn]
@@ -40,6 +40,7 @@ namespace ConsoleApp.Tests
             context.Database.EnsureCreated();
             // let it call modelcreating method
             context.Students.Count();
+
         }
 
         [Benchmark(Description = "EF Single Insert")]

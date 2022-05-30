@@ -9,6 +9,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System;
 using System.Threading.Tasks;
+using Bogus;
+using ConsoleApp.Domain.Entities;
+using Microsoft.Data.SqlClient;
 
 namespace ConsoleApp
 {
@@ -16,20 +19,29 @@ namespace ConsoleApp
     {
         static void Main(string[] args)
         {
-            var dbContextOptions = InitEf();
-            var context = new ApplicationDbContext(dbContextOptions);
 
-            context.Database.Migrate();
-            // BenchmarkRunner.Run<InsertTest>();
+            // var dbContextOptions = InitEf();
+            // var context = new ApplicationDbContext(dbContextOptions);
+            // context.Database.EnsureCreated();
+
+            // var joinDataInitializer = new JoinDataInitializer(context);
+            // await joinDataInitializer.Init();
+
+            // context.Database.Migrate();
+
+            // InitDapper();
+
+            BenchmarkRunner.Run<InsertTest>();
             // BenchmarkRunner.Run<InsertManyTest>();
-            // BenchmarkRunner.Run<SelectTest>();
+            // BenchmarkRunner.Run<SelectJoinTest>();
+            BenchmarkRunner.Run<SelectTest>();
             // BenchmarkRunner.Run<SearchTest>();
             // BenchmarkRunner.Run<FunctionsTest>();
             // BenchmarkRunner.Run<UpdateTest>();
             // BenchmarkRunner.Run<DeleteTest>();
 
 
-            // Console.ReadLine();
+            Console.ReadLine();
         }
 
         public static void InitDapper()

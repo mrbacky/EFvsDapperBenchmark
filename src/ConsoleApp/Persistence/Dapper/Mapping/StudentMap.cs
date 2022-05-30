@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 
 namespace ConsoleApp.Persistence.Dapper.Mapping
 {
+
     public class StudentMap : DommelEntityMap<Student>
     {
         public StudentMap()
@@ -18,7 +19,7 @@ namespace ConsoleApp.Persistence.Dapper.Mapping
 
             Map(p => p.Id).ToColumn("id")
                             .IsKey()
-                            .SetGeneratedOption(DatabaseGeneratedOption.None)
+                            .SetGeneratedOption(DatabaseGeneratedOption.Identity)
                             .IsIdentity();
 
             Map(i => i.FirstName).ToColumn("first_name");

@@ -16,7 +16,7 @@ namespace ConsoleApp.Tests
         BenchmarkDotNet.Engines.RunStrategy.ColdStart,
         BenchmarkDotNet.Jobs.RuntimeMoniker.Net60,
         launchCount: 1,
-        targetCount: 50,
+        targetCount: 1000,
         id: "Select Test")]
     [MemoryDiagnoser]
     [MinColumn, MaxColumn, MeanColumn, MedianColumn]
