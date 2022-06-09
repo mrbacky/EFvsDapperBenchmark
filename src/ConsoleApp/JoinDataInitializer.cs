@@ -11,79 +11,74 @@ namespace ConsoleApp;
 
 public class JoinDataInitializer
 {
+    // Setup
+    private const int NumberOfCourses = 5000;
+    private const int NumberOfStudents = 1000;
     private readonly ApplicationDbContext _context;
+    private readonly List<int> _numbers = Enumerable.Range(1, NumberOfCourses).ToList();
+    private readonly Random _random = new();
     private readonly List<int> _randomNumbers;
-
-    // private int GetRandomId() => new Random().Next(1, 10);
-    private int counter;
+    private int _counter;
 
     public JoinDataInitializer(ApplicationDbContext context)
     {
         _context = context;
-        _randomNumbers = GenerateRandomNumbers(1, 10000, 10000);
+        _randomNumbers = _numbers.OrderBy(n => _random.Next()).ToList();
     }
 
-    private int GetRandomId()
+    private int PickNextCourseId()
     {
-        var x = counter;
-        counter++;
-        // Console.WriteLine("In GetRandomId > x: " + x);
-        // Console.WriteLine("In GetRandomId > list:  " + randomNumbers);
+        var x = _counter;
+        Console.WriteLine("x counter : " + x);
+        _counter++;
         return _randomNumbers[x];
     }
 
-    public List<int> GenerateRandomNumbers(int from, int to, int numberOfElement)
+    public async Task InitData()
     {
-        var random = new Random();
-        var numbers = new HashSet<int>();
-        while (numbers.Count <= numberOfElement) numbers.Add(random.Next(from, to));
-        return numbers.ToList();
-    }
-
-    public async Task Init()
-    {
-        Console.WriteLine("IN  INIT");
-
         await InitStudents();
         await InitCourses();
         await InitCourseStudent();
     }
 
-    public async Task InitStudents()
+    private async Task InitStudents()
     {
-        Console.WriteLine("IN Student INIT");
         var studentFaker = new Faker<Student>("tr")
             .RuleFor(i => i.FirstName, i => i.Person.FirstName)
             .RuleFor(i => i.LastName, i => i.Person.LastName)
             .RuleFor(i => i.BirthDate, i => i.Person.DateOfBirth);
-        var students = studentFaker.Generate(10000);
+        var students = studentFaker.Generate(NumberOfStudents);
+        Console.WriteLine("Student count: " + students.Count);
 
         await _context.AddRangeAsync(students);
         await _context.SaveChangesAsync();
     }
 
-    public async Task InitCourses()
+    private async Task InitCourses()
     {
         var courseFaker = new Faker<Course>("tr")
-            .RuleFor(i => i.Name, i => i.Commerce.Department());
-        var courses = courseFaker.Generate(2000);
+            .RuleFor(i => i.Name, i => i.Company.CompanyName());
+        var courses = courseFaker.Generate(NumberOfCourses);
+        Console.WriteLine("Course count: " + courses.Count);
         await _context.Courses.AddRangeAsync(courses);
         await _context.SaveChangesAsync();
     }
 
-    public async Task InitCourseStudent()
+    private async Task InitCourseStudent()
     {
-        Console.WriteLine("LIST: " + _randomNumbers.Count);
-
-        var sql = @"INSERT INTO course_student (CoursesId, StudentsId)
-                                VALUES ({0}, {1})";
-        for (var studentId = 1; studentId <= 1000; studentId++)
+        const string sql = @"INSERT INTO course_student (CoursesId, StudentsId)VALUES ({0}, {1})";
+        for (var studentId = 1; studentId <= NumberOfStudents; studentId++)
         {
-            var courseId = GetRandomId();
-            Console.WriteLine("courseId: " + courseId + " *  studentId: " + studentId);
-            await _context.Database.ExecuteSqlRawAsync(sql, GetRandomId(), studentId);
+            for (var i = 1; i <= 5; i++)
+            {
+                Console.WriteLine("i: " + i + " student id: " + studentId);
+                var courseId = PickNextCourseId();
+                Console.WriteLine("courseId: " + courseId + " -  studentId: " + studentId);
+                await _context.Database.ExecuteSqlRawAsync(sql, courseId, studentId);
+            }
         }
 
+        // return Task.CompletedTask;
         await _context.SaveChangesAsync();
     }
 }

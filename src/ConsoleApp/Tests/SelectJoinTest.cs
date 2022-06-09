@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Engines;
 using BenchmarkDotNet.Jobs;
+using ConsoleApp.Domain.Entities;
 using ConsoleApp.Persistence.EF.Context;
+using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,9 +17,8 @@ namespace ConsoleApp.Tests;
 [SimpleJob(
     RunStrategy.ColdStart,
     RuntimeMoniker.Net60,
-    1,
-    targetCount: 5,
-    id: "Select Test")]
+    targetCount: 100,
+    id: "Select Join Test")]
 [MemoryDiagnoser]
 [MinColumn]
 [MaxColumn]
@@ -24,49 +26,36 @@ namespace ConsoleApp.Tests;
 [MedianColumn]
 public class SelectJoinTest
 {
+    private const int NumberOfStudents = 999;
+    private readonly List<int> _numbers = Enumerable.Range(1, NumberOfStudents).ToList();
+    private readonly Random _random = new();
+    private List<int> _randomNumbers;
+    private int _counter;
+    private List<int> numbers = Enumerable.Range(1, 100).ToList();
+    private string firstName;
+    private int rowCount;
     private SqlConnection connection;
     private ApplicationDbContext context;
-
-    // private int GetRandomId() => new Random().;
-    private int counter;
-    private string firstName;
-
-    private List<int> numbers = Enumerable.Range(1, 100).ToList();
-
-    private List<int> randomNumbers = new();
-    private int rowCount;
-
-    public List<int> GenerateRandomNumbers(int from, int to, int numberOfElement)
-    {
-        var random = new Random();
-        var numbers = new HashSet<int>();
-        while (numbers.Count < numberOfElement) numbers.Add(random.Next(from, to));
-
-        return numbers.ToList();
-    }
-
-    // private int PickNumber()
-    // {
-    //     int randomNumber = GetRandomId();
-    //     if (numbers.Contains())
-    //     {
-    //
-    //     }
-    // }
+    private int _randomCounter;
 
     private int GetRandomId()
     {
-        var x = counter;
-        counter++;
-        // Console.WriteLine("In GetRandomId > x: " + x);
-        // Console.WriteLine("In GetRandomId > list:  " + randomNumbers);
-        return randomNumbers[x];
+        return new Random().Next(1, rowCount);
+    }
+
+    private int PickNextStudentId()
+    {
+        var x = _counter;
+        Console.WriteLine("-+-+-+-+-+  _counter:  "+_counter +"   ");
+        _counter++;
+        return _randomNumbers[x];
     }
 
     [GlobalSetup]
     public async Task Init()
     {
-        randomNumbers = GenerateRandomNumbers(1, 100, 10);
+        _randomNumbers = _numbers.OrderBy(n => _random.Next()).ToList();
+
         Program.InitDapper();
         var dbContextOptions = Program.InitEf();
 
@@ -77,123 +66,96 @@ public class SelectJoinTest
         firstName = await context.Students.OrderBy(i => Guid.NewGuid()).Select(i => i.FirstName).FirstAsync();
     }
 
-    #region Get Student By Id with Courses
 
-    [Benchmark(Description = "DP Select Student By Id with Courses RawSql")]
-    public async Task DP_Select_Student_By_Id_With_Courses_RawSqwl()
+
+    #region Get All
+
+    [Benchmark(Description = "EF_Get_All_LINQ")]
+    public async Task EF_Get_All_LINQ()
     {
-        // Console.WriteLine("*** Test");
-        // foreach (var n in randomNumbers)
-        // {
-        var rand = GetRandomId();
-        Console.WriteLine("Random id from METHOD: " + rand);
+        await context.Students.Include(s => s.Courses).ToListAsync();
+    }
 
-        // }
-        // int id = GetRandomId();
-        //
-        //
-        //
-        // Console.WriteLine("----------------------------------");
-        // Console.WriteLine("**********  Generated id: " + id);
-        // Console.WriteLine("----------------------------------");
-        await context
-            .Students
-            .FromSqlRaw(@"SELECT
-	                                    s.*,
-                                        c.*
-                                    FROM
-	                                    student s
-                                    JOIN course_student cs ON
-	                                    cs.StudentsId = s.id
-                                    JOIN course c ON
-	                                    c.id = cs.CoursesId
-                                    WHERE
-	                                    s.id = {0} ", rand).SingleOrDefaultAsync();
+    [Benchmark(Description = "DP Get All Raw Sql")]
+    public async Task DP_Get_All_Raw_Sql()
+    {
+        var identityMap = new Dictionary<int, Student>();
+        (await connection
+            .QueryAsync<Student, Course, Student>(@"SELECT
+                        s.*,
+                        c.*
+                    FROM
+                        student s
+                    JOIN course_student cs ON
+                        cs.StudentsId = s.id
+                    JOIN course c ON
+                        c.id = cs.CoursesId",
+                (student, course) =>
+                {
+                    Debug.Assert(student.Id != null, "student.Id != null");
+                    if (!identityMap.TryGetValue((int) student.Id, out var master))
+                    {
+                        identityMap[(int) student.Id] = master = student;
+                    }
+                    var list = master.Courses;
+                    if (list == null) {
+                        master.Courses = list = new List<Course>();
+                    }
+                    list.Add(course);
+                    return master;
+                }, splitOn: "id")).ToList();
     }
 
     #endregion
 
-    #region Find Single
+    #region Get By Id
 
-    // [Benchmark(Description = "EF Find")]
-    // public async Task EF_Select_Student_By_Id_Linq()
-    // {
-    //     int id = GetRandomId();
-    //     await context.Students.FindAsync(id);
-    // }
-    //
-    // [Benchmark(Description = "DP Find")]
-    // public async Task DP_Select_Student_By_Id_Linq()
-    // {
-    //     int id = GetRandomId();
-    //     await connection.GetAsync<Student>(id);
-    // }
+    [Benchmark(Description = "EF Get By Id")]
+    public async Task EF_Get_By_Id()
+    {
+       await context.Students
+            .Include(s => s.Courses)
+            .Where(s => s.Id == GetRandomId()).FirstOrDefaultAsync();
+    }
 
-    #endregion
-
-    #region SingleOrDefault RawSql
-
-    // [Benchmark(Description = "EF SingleOrDefault RawSql")]
-    // public async Task EF_Select_Student_By_Id_RawSqwl()
-    // {
-    //     int id = GetRandomId();
-    //     await context.Students.FromSqlRaw("SELECT * from student WHERE id = {0}", id).SingleOrDefaultAsync();
-    // }
-    //
-    // [Benchmark(Description = "DP SingleOrDefault RawSql")]
-    // public async Task DP_Select_Student_By_Id()
-    // {
-    //     int id = GetRandomId();
-    //     await connection.QuerySingleOrDefaultAsync<Student>("SELECT * from student WHERE id = @pid", new { pid = id });
-    // }
-
-    #endregion
-
-    #region Filtered By FirstName
-
-    // [Benchmark(Description = "EF Filter By FirstName LinQ")]
-    // public async Task EF_FilterBy_FirstName_LinQ()
-    // {
-    //     await context.Students.Where(i => i.FirstName == firstName).ToListAsync();
-    // }
-    //
-    //
-    // [Benchmark(Description = "DP Filter By FirstName LinQ")]
-    // public async Task DP_FilterBy_FirstName_LinQ()
-    // {
-    //     (await connection.SelectAsync<Student>(i => i.FirstName == firstName)).ToList();
-    // }
-    //
-    //
-    // [Benchmark(Description = "EF Filter By FirstName RawSql")]
-    // public async Task EF_FilterBy_FirstName_RawSql()
-    // {
-    //     await context.Students.FromSqlRaw("SELECT * from student WHERE first_name = {0}", firstName).ToListAsync();
-    // }
-    //
-    // [Benchmark(Description = "DP Filter By FirstName RawSql")]
-    // public async Task DP_FilterBy_FirstName_RawSql()
-    // {
-    //     (await connection.QueryAsync<Student>("SELECT * from student WHERE first_name = @FirstName", new { FirstName = firstName })).ToList();
-    // }
+    [Benchmark(Description = "DP Get By Id Raw Sql")]
+    public async Task DP_Get_By_Id_Raw_Sql()
+    {
+        var identityMap = new Dictionary<int, Student>();
+        (await connection
+            .QueryAsync<Student, Course, Student>(@"SELECT
+                        s.*,
+                        c.*
+                    FROM
+                        student s
+                    JOIN course_student cs ON
+                        cs.StudentsId = s.id
+                    JOIN course c ON
+                        c.id = cs.CoursesId
+                    WHERE s.id = @p1",
+                (student, course) =>
+                {
+                    Debug.Assert(student.Id != null, "student.Id != null");
+                    if (!identityMap.TryGetValue((int) student.Id, out var master))
+                    {
+                        identityMap[(int) student.Id] = master = student;
+                    }
+                    var list = master.Courses;
+                    if (list == null) {
+                        master.Courses = list = new List<Course>();
+                    }
+                    list.Add(course);
+                    return master;
+                }, new {p1 = GetRandomId()},splitOn: "id")).AsList().Take(1);
+    }
 
     #endregion
 
-    #region Get All
 
-    //
-    // [Benchmark(Description = "EF Get ALL")]
-    // public async Task EF_Select_Student_ALL()
-    // {
-    //     await context.Students.ToListAsync();
-    // }
-    //
-    //
-    // [Benchmark(Description = "DP Get ALL")]
-    // public async Task DP_Select_Student_ALL()
-    // {
-    //     (await connection.GetAllAsync<Student>()).ToList();
-    // }
 
-    #endregion
+
+
+
+
+
 }
